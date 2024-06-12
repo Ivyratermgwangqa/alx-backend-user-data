@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+Flask application for user authentication.
+"""
+
 from flask import Flask, jsonify, request, abort, redirect
 from auth import Auth
 
@@ -6,11 +10,23 @@ app = Flask(__name__)
 AUTH = Auth()
 
 @app.route("/", methods=["GET"])
-def index():
+def index() -> str:
+    """
+    Welcome endpoint.
+
+    Returns:
+        str: JSON response with a welcome message.
+    """
     return jsonify({"message": "Bienvenue"})
 
 @app.route('/users', methods=['POST'])
-def register_user():
+def register_user() -> str:
+    """
+    Register a new user.
+
+    Returns:
+        str: JSON response with user email and message or error message.
+    """
     email = request.form.get('email')
     password = request.form.get('password')
     try:
@@ -20,7 +36,13 @@ def register_user():
         return jsonify({"message": "email already registered"}), 400
 
 @app.route('/sessions', methods=['POST'])
-def login():
+def login() -> str:
+    """
+    Login a user.
+
+    Returns:
+        str: JSON response with user email and message or error message.
+    """
     email = request.form.get('email')
     password = request.form.get('password')
     if not AUTH.valid_login(email, password):
@@ -31,7 +53,13 @@ def login():
     return response
 
 @app.route('/sessions', methods=['DELETE'])
-def logout():
+def logout() -> str:
+    """
+    Logout a user.
+
+    Returns:
+        str: Redirect response to the home page.
+    """
     session_id = request.cookies.get("session_id")
     user = AUTH.get_user_from_session_id(session_id)
     if user is None:
@@ -40,7 +68,13 @@ def logout():
     return redirect("/", code=302)
 
 @app.route('/profile', methods=['GET'])
-def profile():
+def profile() -> str:
+    """
+    Get the user profile.
+
+    Returns:
+        str: JSON response with user email or error message.
+    """
     session_id = request.cookies.get("session_id")
     user = AUTH.get_user_from_session_id(session_id)
     if user is None:
@@ -48,7 +82,13 @@ def profile():
     return jsonify({"email": user.email})
 
 @app.route('/reset_password', methods=['POST'])
-def reset_password():
+def reset_password() -> str:
+    """
+    Request a password reset token.
+
+    Returns:
+        str: JSON response with user email and reset token or error message.
+    """
     email = request.form.get('email')
     if email is None:
         abort(403)
@@ -59,7 +99,13 @@ def reset_password():
         abort(403)
 
 @app.route('/reset_password', methods=['PUT'])
-def update_password():
+def update_password() -> str:
+    """
+    Update the user's password.
+
+    Returns:
+        str: JSON response with a success message or error message.
+    """
     reset_token = request.form.get('reset_token')
     new_password = request.form.get('new_password')
     if reset_token is None or new_password is None:
