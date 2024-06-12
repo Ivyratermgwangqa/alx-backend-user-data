@@ -7,6 +7,7 @@ import requests
 
 BASE_URL = 'http://127.0.0.1:5000'
 
+
 def register_user(email: str, password: str) -> None:
     """
     Register a new user and assert the response.
@@ -17,6 +18,7 @@ def register_user(email: str, password: str) -> None:
     assert response.status_code == 200
     assert response.json() == {"email": email, "message": "user created"}
 
+
 def log_in_wrong_password(email: str, password: str) -> None:
     """
     Attempt to log in with wrong password and assert the response.
@@ -25,6 +27,7 @@ def log_in_wrong_password(email: str, password: str) -> None:
     data = {'email': email, 'password': password}
     response = requests.post(url, data=data)
     assert response.status_code == 401
+
 
 def log_in(email: str, password: str) -> str:
     """
@@ -37,6 +40,7 @@ def log_in(email: str, password: str) -> str:
     assert response.json() == {"email": email, "message": "logged in"}
     return response.cookies.get("session_id")
 
+
 def profile_unlogged() -> None:
     """
     Attempt to access profile without being logged in .
@@ -44,6 +48,7 @@ def profile_unlogged() -> None:
     url = f"{BASE_URL}/profile"
     response = requests.get(url)
     assert response.status_code == 403
+
 
 def profile_logged(session_id: str) -> None:
     """
@@ -55,6 +60,7 @@ def profile_logged(session_id: str) -> None:
     assert response.status_code == 200
     assert "email" in response.json()
 
+
 def log_out(session_id: str) -> None:
     """
     Log out a user and assert the response.
@@ -63,6 +69,7 @@ def log_out(session_id: str) -> None:
     cookies = {'session_id': session_id}
     response = requests.delete(url, cookies=cookies)
     assert response.status_code == 200
+
 
 def reset_password_token(email: str) -> str:
     """
@@ -74,6 +81,7 @@ def reset_password_token(email: str) -> str:
     assert response.status_code == 200
     return response.json().get("reset_token")
 
+
 def update_password(email: str, reset_token: str, new_password: str) -> None:
     """
     Update the user's password and assert the response.
@@ -83,6 +91,7 @@ def update_password(email: str, reset_token: str, new_password: str) -> None:
     response = requests.put(url, data=data)
     assert response.status_code == 200
     assert response.json() == {"message": "Password updated"}
+
 
 # Test constants
 EMAIL = "guillaume@holberton.io"
