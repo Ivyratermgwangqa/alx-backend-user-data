@@ -9,6 +9,7 @@ from auth import Auth
 app = Flask(__name__)
 AUTH = Auth()
 
+
 @app.route("/", methods=["GET"])
 def index() -> str:
     """
@@ -18,6 +19,7 @@ def index() -> str:
         str: JSON response with a welcome message.
     """
     return jsonify({"message": "Bienvenue"})
+
 
 @app.route('/users', methods=['POST'])
 def register_user() -> str:
@@ -34,6 +36,7 @@ def register_user() -> str:
         return jsonify({"email": user.email, "message": "user created"})
     except ValueError:
         return jsonify({"message": "email already registered"}), 400
+
 
 @app.route('/sessions', methods=['POST'])
 def login() -> str:
@@ -52,6 +55,7 @@ def login() -> str:
     response.set_cookie("session_id", session_id)
     return response
 
+
 @app.route('/sessions', methods=['DELETE'])
 def logout() -> str:
     """
@@ -67,6 +71,7 @@ def logout() -> str:
     AUTH.destroy_session(user.id)
     return redirect("/", code=302)
 
+
 @app.route('/profile', methods=['GET'])
 def profile() -> str:
     """
@@ -80,6 +85,7 @@ def profile() -> str:
     if user is None:
         abort(403)
     return jsonify({"email": user.email})
+
 
 @app.route('/reset_password', methods=['POST'])
 def reset_password() -> str:
@@ -98,6 +104,7 @@ def reset_password() -> str:
     except ValueError:
         abort(403)
 
+
 @app.route('/reset_password', methods=['PUT'])
 def update_password() -> str:
     """
@@ -115,6 +122,7 @@ def update_password() -> str:
         return jsonify({"message": "Password updated"})
     except ValueError:
         abort(403)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port="5000")
