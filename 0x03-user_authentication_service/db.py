@@ -12,6 +12,7 @@ from typing import Optional
 
 Base = declarative_base()
 
+
 class DB:
     """
     DB class handles database interactions.
