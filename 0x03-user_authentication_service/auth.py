@@ -39,7 +39,8 @@ class Auth:
             self.db.find_user_by_email(email)
             raise ValueError(f"User {email} already exists")
         except NoResultFound:
-            hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+            hashed_password = bcrypt.hashpw(
+                password.encode(), bcrypt.gensalt()).decode()
             return self.db.add_user(email, hashed_password)
 
     def valid_login(self, email: str, password: str) -> bool:
@@ -126,7 +127,9 @@ class Auth:
         """
         try:
             user = self.db.find_user_by_reset_token(reset_token)
-            hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-            self.db.update_user(user.id, hashed_password=hashed_password, reset_token=None)
+            hashed_password = bcrypt.hashpw(
+                password.encode(), bcrypt.gensalt()).decode()
+            self.db.update_user(
+                user.id, hashed_password=hashed_password, reset_token=None)
         except NoResultFound:
             raise ValueError("Invalid reset token")
