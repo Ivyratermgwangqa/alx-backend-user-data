@@ -1,74 +1,100 @@
 #!/usr/bin/env python3
-from flask import Flask, jsonify, request, abort, redirect
-from auth import Auth
+"""
+Database interaction management.
+"""
 
-app = Flask(__name__)
-AUTH = Auth()
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.exc import NoResultFound
+from user import User
+from typing import Optional
 
-@app.route("/", methods=["GET"])
-def index():
-    return jsonify({"message": "Bienvenue"})
+Base = declarative_base()
 
-@app.route('/users', methods=['POST'])
-def register_user():
-    email = request.form.get('email')
-    password = request.form.get('password')
-    try:
-        user = AUTH.register_user(email, password)
-        return jsonify({"email": user.email, "message": "user created"})
-    except ValueError:
-        return jsonify({"message": "email already registered"}), 400
+class DB:
+    """
+    DB class handles database interactions.
 
-@app.route('/sessions', methods=['POST'])
-def login():
-    email = request.form.get('email')
-    password = request.form.get('password')
-    if not AUTH.valid_login(email, password):
-        abort(401)
-    session_id = AUTH.create_session(email)
-    response = jsonify({"email": email, "message": "logged in"})
-    response.set_cookie("session_id", session_id)
-    return response
+    Attributes:
+        engine: SQLAlchemy engine instance.
+        Session: SQLAlchemy session maker.
+    """
 
-@app.route('/sessions', methods=['DELETE'])
-def logout():
-    session_id = request.cookies.get("session_id")
-    user = AUTH.get_user_from_session_id(session_id)
-    if user is None:
-        abort(403)
-    AUTH.destroy_session(user.id)
-    return redirect("/", code=302)
+    def __init__(self) -> None:
+        """
+        Initialize DB with a database URL.
+        """
+        self.engine = create_engine('sqlite:///mydatabase.db')
+        self.Session = sessionmaker(bind=self.engine)
+        Base.metadata.create_all(self.engine)
 
-@app.route('/profile', methods=['GET'])
-def profile():
-    session_id = request.cookies.get("session_id")
-    user = AUTH.get_user_from_session_id(session_id)
-    if user is None:
-        abort(403)
-    return jsonify({"email": user.email})
+    def add_user(self, email: str, hashed_password: str) -> User:
+        """
+        Add a new user to the database.
 
-@app.route('/reset_password', methods=['POST'])
-def reset_password():
-    email = request.form.get('email')
-    if email is None:
-        abort(403)
-    try:
-        reset_token = AUTH.get_reset_password_token(email)
-        return jsonify({"email": email, "reset_token": reset_token})
-    except ValueError:
-        abort(403)
+        Args:
+            email: The email of the user.
+            hashed_password: The hashed password of the user.
 
-@app.route('/reset_password', methods=['PUT'])
-def update_password():
-    reset_token = request.form.get('reset_token')
-    new_password = request.form.get('new_password')
-    if reset_token is None or new_password is None:
-        abort(403)
-    try:
-        AUTH.update_password(reset_token, new_password)
-        return jsonify({"message": "Password updated"})
-    except ValueError:
-        abort(403)
+        Returns:
+            User: The created User object.
+        """
+        session = self.Session()
+        new_user = User(email=email, hashed_password=hashed_password)
+        session.add(new_user)
+        session.commit()
+        return new_user
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port="5000")
+    def find_user_by_email(self, email: str) -> User:
+        """
+        Find a user by email.
+
+        Args:
+            email: The email of the user.
+
+        Returns:
+            User: The found User object.
+        """
+        session = self.Session()
+        return session.query(User).filter_by(email=email).first()
+
+    def find_user_by_session_id(self, session_id: str) -> User:
+        """
+        Find a user by session ID.
+
+        Args:
+            session_id: The session ID.
+
+        Returns:
+            User: The found User object.
+        """
+        session = self.Session()
+        return session.query(User).filter_by(session_id=session_id).first()
+
+    def find_user_by_reset_token(self, reset_token: str) -> User:
+        """
+        Find a user by reset token.
+
+        Args:
+            reset_token: The reset token.
+
+        Returns:
+            User: The found User object.
+        """
+        session = self.Session()
+        return session.query(User).filter_by(reset_token=reset_token).first()
+
+    def update_user(self, user_id: int, **kwargs) -> None:
+        """
+        Update a user's attributes.
+
+        Args:
+            user_id: The user ID.
+            kwargs: The attributes to update.
+        """
+        session = self.Session()
+        user = session.query(User).get(user_id)
+        for key, value in kwargs.items():
+            setattr(user, key, value)
+        session.commit()
