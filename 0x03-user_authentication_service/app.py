@@ -1,101 +1,128 @@
 #!/usr/bin/env python3
 """
-End-to-end integration tests for user authentication.
+Flask application for user authentication.
 """
 
-import requests
+from flask import Flask, jsonify, request, abort, redirect
+from auth import Auth
 
-BASE_URL = 'http://127.0.0.1:5000'
+app = Flask(__name__)
+AUTH = Auth()
 
-def register_user(email: str, password: str) -> None:
-    """
-    Register a new user and assert the response.
-    """
-    url = f"{BASE_URL}/users"
-    data = {'email': email, 'password': password}
-    response = requests.post(url, data=data)
-    assert response.status_code == 200
-    assert response.json() == {"email": email, "message": "user created"}
 
-def log_in_wrong_password(email: str, password: str) -> None:
+@app.route("/", methods=["GET"])
+def index() -> str:
     """
-    Attempt to log in with the wrong password and assert the response.
-    """
-    url = f"{BASE_URL}/sessions"
-    data = {'email': email, 'password': password}
-    response = requests.post(url, data=data)
-    assert response.status_code == 401
+    Welcome endpoint.
 
-def log_in(email: str, password: str) -> str:
+    Returns:
+        str: JSON response with a welcome message.
     """
-    Log in a user and assert the response, return the session_id.
-    """
-    url = f"{BASE_URL}/sessions"
-    data = {'email': email, 'password': password}
-    response = requests.post(url, data=data)
-    assert response.status_code == 200
-    assert response.json() == {"email": email, "message": "logged in"}
-    return response.cookies.get("session_id")
+    return jsonify({"message": "Bienvenue"})
 
-def profile_unlogged() -> None:
-    """
-    Attempt to access profile without being logged in and assert the response.
-    """
-    url = f"{BASE_URL}/profile"
-    response = requests.get(url)
-    assert response.status_code == 403
 
-def profile_logged(session_id: str) -> None:
+@app.route('/users', methods=['POST'])
+def register_user() -> str:
     """
-    Access the profile with a valid session and assert the response.
-    """
-    url = f"{BASE_URL}/profile"
-    cookies = {'session_id': session_id}
-    response = requests.get(url, cookies=cookies)
-    assert response.status_code == 200
-    assert "email" in response.json()
+    Register a new user.
 
-def log_out(session_id: str) -> None:
+    Returns:
+        str: JSON response with user email and message or error message.
     """
-    Log out a user and assert the response.
-    """
-    url = f"{BASE_URL}/sessions"
-    cookies = {'session_id': session_id}
-    response = requests.delete(url, cookies=cookies)
-    assert response.status_code == 200
+    email = request.form.get('email')
+    password = request.form.get('password')
+    try:
+        user = AUTH.register_user(email, password)
+        return jsonify({"email": user.email, "message": "user created"})
+    except ValueError:
+        return jsonify({"message": "email already registered"}), 400
 
-def reset_password_token(email: str) -> str:
-    """
-    Request a password reset token and assert the response.
-    """
-    url = f"{BASE_URL}/reset_password"
-    data = {'email': email}
-    response = requests.post(url, data=data)
-    assert response.status_code == 200
-    return response.json().get("reset_token")
 
-def update_password(email: str, reset_token: str, new_password: str) -> None:
+@app.route('/sessions', methods=['POST'])
+def login() -> str:
     """
-    Update the user's password and assert the response.
-    """
-    url = f"{BASE_URL}/reset_password"
-    data = {'reset_token': reset_token, 'new_password': new_password}
-    response = requests.put(url, data=data)
-    assert response.status_code == 200
-    assert response.json() == {"message": "Password updated"}
+    Login a user.
 
-# Test constants
-EMAIL = "guillaume@holberton.io"
-PASSWD = "b4l0u"
-NEW_PASSWD = "t4rt1fl3tt3"
+    Returns:
+        str: JSON response with user email and message or error message.
+    """
+    email = request.form.get('email')
+    password = request.form.get('password')
+    if not AUTH.valid_login(email, password):
+        abort(401)
+    session_id = AUTH.create_session(email)
+    response = jsonify({"email": email, "message": "logged in"})
+    response.set_cookie("session_id", session_id)
+    return response
+
+
+@app.route('/sessions', methods=['DELETE'])
+def logout() -> str:
+    """
+    Logout a user.
+
+    Returns:
+        str: Redirect response to the home page.
+    """
+    session_id = request.cookies.get("session_id")
+    user = AUTH.get_user_from_session_id(session_id)
+    if user is None:
+        abort(403)
+    AUTH.destroy_session(user.id)
+    return redirect("/", code=302)
+
+
+@app.route('/profile', methods=['GET'])
+def profile() -> str:
+    """
+    Get the user profile.
+
+    Returns:
+        str: JSON response with user email or error message.
+    """
+    session_id = request.cookies.get("session_id")
+    user = AUTH.get_user_from_session_id(session_id)
+    if user is None:
+        abort(403)
+    return jsonify({"email": user.email})
+
+
+@app.route('/reset_password', methods=['POST'])
+def reset_password() -> str:
+    """
+    Request a password reset token.
+
+    Returns:
+        str: JSON response with user email and reset token or error message.
+    """
+    email = request.form.get('email')
+    if email is None:
+        abort(403)
+    try:
+        reset_token = AUTH.get_reset_password_token(email)
+        return jsonify({"email": email, "reset_token": reset_token})
+    except ValueError:
+        abort(403)
+
+
+@app.route('/reset_password', methods=['PUT'])
+def update_password() -> str:
+    """
+    Update the user's password.
+
+    Returns:
+        str: JSON response with a success message or error message.
+    """
+    reset_token = request.form.get('reset_token')
+    new_password = request.form.get('new_password')
+    if reset_token is None or new_password is None:
+        abort(403)
+    try:
+        AUTH.update_password(reset_token, new_password)
+        return jsonify({"message": "Password updated"})
+    except ValueError:
+        abort(403)
+
 
 if __name__ == "__main__":
-    register_user(EMAIL, PASSWD)
-    log_in_wrong_password(EMAIL, NEW_PASSWD)
-    profile_unlogged()
-    session_id = log_in(EMAIL, PASSWD)
-    profile_logged(session_id)
-    log_out(session_id)
-    reset_token = reset_password_token(EMAIL)
-    update_password(EMAIL, reset_token, NEW_PASSWD)
-    log_in(EMAIL, NEW_PASSWD)
+    app.run(host="0.0.0.0", port="5000")
