@@ -7,6 +7,8 @@ import bcrypt
 from db import DB
 from user import User
 from typing import Optional
+from uuid import uuid4
+from sqlalchemy.orm.exc import NoResultFound
 
 class Auth:
     """
