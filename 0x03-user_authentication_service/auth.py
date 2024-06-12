@@ -10,6 +10,7 @@ from typing import Optional
 from uuid import uuid4
 from sqlalchemy.orm.exc import NoResultFound
 
+
 class Auth:
     """
     Auth class handles authentication processes.
@@ -56,7 +57,9 @@ class Auth:
         """
         try:
             user = self.db.find_user_by_email(email)
-            return bcrypt.checkpw(password.encode(), user.hashed_password.encode())
+            return bcrypt.checkpw(
+                password.encode(), user.hashed_password.encode()
+            )
         except NoResultFound:
             return False
 
