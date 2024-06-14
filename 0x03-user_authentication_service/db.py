@@ -9,7 +9,6 @@ from sqlalchemy.orm.exc import NoResultFound
 from user import Base, User
 from typing import Type
 
-
 class DB:
     """DB class for database operations"""
 
@@ -41,9 +40,9 @@ class DB:
             user = self._session.query(User).filter_by(**kwargs).one()
             return user
         except NoResultFound:
-            raise NoResultFound
+            raise NoResultFound("No user found with the given parameters.")
         except InvalidRequestError:
-            raise InvalidRequestError
+            raise InvalidRequestError("Invalid request parameters.")
 
     def update_user(self, user_id: int, **kwargs) -> None:
         """Update a user's attributes"""
