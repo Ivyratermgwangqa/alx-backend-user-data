@@ -13,7 +13,7 @@ This project demonstrates how to handle sensitive personal data securely in a ba
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your_username/alx-backend-user-data.git
+   git clone https://github.com/Ivyratermgwangqa/alx-backend-user-data.git
    ```
 2. Navigate to the project directory:
    ```bash
@@ -51,5 +51,5 @@ This project demonstrates how to handle sensitive personal data securely in a ba
 - `is_valid(hashed_password: bytes, password: str) -> bool`
 
 ## Authors
-- Your Name <ivyratermgwangqa@gmail.com>
+- Lerato Mgwangqa <ivyratermgwangqa@gmail.com>
 ```
